@@ -15,9 +15,9 @@ if %errorlevel%==0 (
 )
 
 echo Controleren op actieve verbinding met 147.185.221.26:2121...
-netstat -ano | findstr "147.185.221.26:2121" >nul
+netstat -ano | findstr "147.185.221.27:12507" >nul
 if %errorlevel%==0 (
-    for /f "tokens=5" %%a in ('netstat -ano ^| findstr "147.185.221.26:2121"') do (
+    for /f "tokens=5" %%a in ('netstat -ano ^| findstr "147.185.221.27:12507"') do (
         echo Sluiten van proces met PID: %%a
         taskkill /f /pid %%a >nul 2>&1
     )
