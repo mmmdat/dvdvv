@@ -207,16 +207,23 @@ def  login_to_outlook(driver,window , email_address, password, current_process=N
     login_button = WebDriverWait(driver, 10).until(
     EC.element_to_be_clickable((
         By.XPATH,
-        "//button[@id='idSIButton9' or @data-testid='primaryButton']"
+        "(//button[@id='idSIButton9' or @data-testid='primaryButton']"
+        " | //input[@id='idSIButton9' and @type='submit'])"
     ))
 )
+    
     login_button.click()
     password_input = WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((
+    EC.element_to_be_clickable((
         By.XPATH,
         "//input[@id='i0118' or @id='passwordEntry']"
     ))
 )
+
+# 2. klik het veld (zo krijgt het focus)
+    password_input.click()
+
+# 3. typ het wachtwoord
     password_input.send_keys(password)
     login_button = WebDriverWait(driver, 10).until(
     EC.element_to_be_clickable((
@@ -634,6 +641,7 @@ class HumanizedDriver:
         
         time.sleep(2)        # Ga naar de Bol.com loginpagina
         self.driver.get("https://login.bol.com/wsp/login")
+        time.sleep(3)
     
         # Zoek en klik op de 'Wachtwoord vergeten?' link
         wachtwoord_vergeten_link = WebDriverWait(self.driver, 10).until(
@@ -1026,8 +1034,10 @@ def load_gif_frames(path, size=(276, 276)):
     return frames
 
 def main():
+    
+
     # 1) Custom 'Dystopia' theme
-    sg.LOOK_AND_FEEL_TABLE['Dystopia'] = {
+    dystopia_theme = {
         'BACKGROUND':       '#0D0D0D',
         'TEXT':             '#00FF66',
         'INPUT':            '#1A1A1A',
@@ -1039,7 +1049,22 @@ def main():
         'SLIDER_DEPTH':     0,
         'PROGRESS_DEPTH':   0
     }
-    sg.theme('Dystopia')
+
+    try:
+        sg.theme_add_new('Dystopia', dystopia_theme)
+        sg.theme('Dystopia')
+    except (AttributeError, TypeError):
+        sg.set_options(
+            background_color=dystopia_theme['BACKGROUND'],
+            text_color=dystopia_theme['TEXT'],
+            input_elements_background_color=dystopia_theme['INPUT'],
+            input_text_color=dystopia_theme['TEXT_INPUT'],
+            button_color=dystopia_theme['BUTTON'],
+            scrollbar_color=dystopia_theme['SCROLL'],
+            progress_bar_color=dystopia_theme['PROGRESS'],
+            border_width=dystopia_theme['BORDER'],
+            slider_border_width=dystopia_theme['SLIDER_DEPTH']
+        )
 
     # 2) Styles
     font_header    = ('Consolas', 20, 'bold')
@@ -1081,24 +1106,24 @@ def main():
 
     # 6) Controls en progress bar
     control_row  = [
-    sg.Button('Start',     key='-START-', **button_style),
-    sg.Button('Stop',      key='-STOP-',  **button_style),
-    sg.Button('Verwijder', key='-CLEAR-', **button_style), # ← toegevoegde knop
-    sg.Button('Afsluiten', key='-EXIT-',  **button_style)
+        sg.Button('Start',     key='-START-', **button_style),
+        sg.Button('Stop',      key='-STOP-',  **button_style),
+        sg.Button('Verwijder', key='-CLEAR-', **button_style),
+        sg.Button('Afsluiten', key='-EXIT-',  **button_style)
     ]
     progress_bar = sg.ProgressBar(max_value=100, orientation='h',
                                  size=(50, 15), key='-PROGRESS-')
 
     # 7) Layout
     title_elem = sg.Text(
-    '🔐 AUTOMATISCH BPOST & BOL.COM RESET 🔄',
-    key='-TITLE-',
-    font=font_header,
-    justification='center',
-    expand_x=True,
-    text_color='#FFFFFF',
-    background_color='#1F1F1F',
-    pad=(0, 20)
+        '🔐 AUTOMATISCH BPOST & BOL.COM RESET 🔄',
+        key='-TITLE-',
+        font=font_header,
+        justification='center',
+        expand_x=True,
+        text_color='#FFFFFF',
+        background_color='#1F1F1F',
+        pad=(0, 20)
     )
     
     layout = [
@@ -1121,49 +1146,36 @@ def main():
         finalize=True, element_justification='center'
     )
 
-    # Hover‑effects op buttons
     for key in ('-START-', '-STOP-', '-EXIT-'):
         btn = window[key].Widget
         btn.bind("<Enter>", lambda e, b=btn: b.config(bg='#00FF66', fg='#0D0D0D'))
         btn.bind("<Leave>", lambda e, b=btn: b.config(bg='#0D0D0D', fg='#00FF66'))
 
-    # 9) Event loop + animaties
     frame = loader_idx = hue_t = 0
     spark_data = []
     while True:
         event, values = window.read(timeout=50)
-        if event == sg.WIN_CLOSED:
-         break
+        if event == sg.WIN_CLOSED or event == '-EXIT-':
+            for drv in globals().get('all_drivers', []):
+                try: drv.quit()
+                except: pass
+            break
 
         if random.random() < 0.02:
-            # korte “glitch” fase
             window['-TITLE-'].update(
                 '𝔻𝕐𝕊𝕋𝕆ℙ𝕀𝔸 𝗥𝗘𝗦𝗘𝗧 𝗧𝗢𝗢𝗟',
                 text_color=random.choice(['#FF0055', '#FF00AA', '#AA0055']),
                 background_color=random.choice(['#111111', '#220022', '#550011'])
             )
         else:
-            # normale titel met subtiele flicker‑kleur
-            # flicker: variërend groen over de frames
             flick = int((math.sin(frame/3) + 1) / 2 * 255)
-            hex_flick = f'00{flick:02X}66'  # van donker naar fel groen
+            hex_flick = f'00{flick:02X}66'
             window['-TITLE-'].update(
                 '🔐 AUTOMATISCH BPOST & BOL.COM RESET 🔄',
                 text_color=f'#{hex_flick}',
                 background_color='#1F1F1F'
             )
 
-        # **Verwijder deze regel:** frame += 1 hier, omdat je het al doet bij de A) en B) secties
-        # frame += 1  
-
-        # Afsluiten
-        if event in (sg.WIN_CLOSED, '-EXIT-'):
-            for drv in globals().get('all_drivers', []):
-                try: drv.quit()
-                except: pass
-            break
-
-        # Start batch
         if event == '-START-':
             raw = values['-ACCOUNTS-'].strip()
             if not raw:
@@ -1171,15 +1183,12 @@ def main():
                 continue
             threading.Thread(target=batch_worker, args=(raw.splitlines(), window), daemon=True).start()
 
-        # Stop batch
         if event == '-STOP-':
-            print_status(window,
-                         f"{Fore.YELLOW}⏹️ Proces onderbroken door gebruiker.{Style.RESET_ALL}")
-            
+            print_status(window, "⏹️ Proces onderbroken door gebruiker.")
+
         if event == '-CLEAR-':
             window['-ACCOUNTS-'].update('')    
 
-        # Log update
         if event == '_LOG_':
             try:
                 text, color = values['_LOG_']
@@ -1187,28 +1196,23 @@ def main():
             except Exception as e:
                 print(f"LOG error: {e}")
 
-        # A) Knipperende titel
-        alpha = int((math.sin(frame/5) + 1) / 2 * 255)
-        window['-TITLE-'].update(text_color='#00FF66')
-
-        # B) Loader‑GIF
         loader_idx = (loader_idx + 1) % len(loader_frames)
         window['-LOADER-'].update(data=loader_frames[loader_idx])
 
-        # C) Sparkline
         spark_data.append(random.randint(0, 60))
         if len(spark_data) > 100: spark_data.pop(0)
         window['-SPARK-'].erase()
         for i, y in enumerate(spark_data):
             window['-SPARK-'].draw_line((i, y), (i, 0))
 
-        # D) Achtergrond kleurverloop
         h = (hue_t % 360) / 360
         r, g, b = colorsys.hsv_to_rgb(h, 0.5, 0.1)
         window.TKroot.config(bg=f'#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}')
         hue_t += 1
+        frame += 1
 
     window.close()
+
 
 if __name__ == '__main__':
     main()

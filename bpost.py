@@ -436,16 +436,18 @@ def login_to_outlook(driver, email_address, password):
     login_button = WebDriverWait(driver, 10).until(
     EC.element_to_be_clickable((
         By.XPATH,
-        "//button[@id='idSIButton9' or @data-testid='primaryButton']"
+        "(//button[@id='idSIButton9' or @data-testid='primaryButton']"
+        " | //input[@id='idSIButton9' and @type='submit'])"
     ))
 )
     login_button.click()
     password_input = WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((
+    EC.element_to_be_clickable((
         By.XPATH,
         "//input[@id='i0118' or @id='passwordEntry']"
     ))
 )
+    password_input.click()
     password_input.send_keys(password)
     login_button = WebDriverWait(driver, 10).until(
     EC.element_to_be_clickable((
